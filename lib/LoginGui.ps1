@@ -1,149 +1,231 @@
-﻿# ============================================================
-# LoginGui.ps1 - SSHログイン用GUIツール
-# ============================================================
+﻿<#
+SSH Auto Login Tool（GUI）
+
+■ 概要
+Tera Termを利用したSSH接続用GUIツール。
+
+■ 前提
+- Windows + PowerShell 5.1以上
+- Tera Term インストール済み
+
+■ 拡張
+- ボタン追加：NewBtn関数を利用
+- 入力追加：TableLayoutPanelへ行追加
+#>
 
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 
-# --- 1. 動作環境・パスの設定 ---
-$basePath = Split-Path $PSScriptRoot -Parent
-$confPath = Join-Path $basePath "conf"
-$logPath  = Join-Path $basePath "log"
-$ttlPath  = Join-Path $PSScriptRoot "Main.ttl"
-
-# ログ保存フォルダの自動作成
-if (-not (Test-Path $logPath)) {
-    New-Item $logPath -ItemType Directory | Out-Null
-}
-
-# ttpmacro.exeの場所を特定
+# ============================================================
+# TeraTerm確認
+# ============================================================
 $ttmacro = "C:\Program Files (x86)\teraterm\ttpmacro.exe"
+
 if (-not (Test-Path $ttmacro)) {
-    $ttmacro = (Get-Command ttpmacro.exe -ErrorAction SilentlyContinue).Source
+    $cmd = Get-Command ttpmacro.exe -ErrorAction SilentlyContinue
+    if ($cmd) { $ttmacro = $cmd.Source } else { $ttmacro = $null }
 }
 
-# ttpmacro.exeのパスを基に ttermpro.exe（本体）のパスを導出
+$ttermpro = $null
 if ($ttmacro) {
-    $ttermpro = $ttmacro.Replace("ttpmacro.exe", "ttermpro.exe")
+    $ttermpro = $ttmacro -replace "ttpmacro.exe", "ttermpro.exe"
 }
 
-# 【重要】ttermpro.exe が存在しない場合はエラーを表示して終了
-if (-not $ttermpro -or -not (Test-Path $ttermpro)) {
+if ([string]::IsNullOrWhiteSpace($ttermpro) -or -not (Test-Path $ttermpro)) {
     [System.Windows.Forms.MessageBox]::Show(
-        "Tera Term本体 (ttermpro.exe) が見つかりませんでした。`nインストールパスを確認してください。",
-        "実行エラー",
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Error
+        "Tera Termが見つかりません",
+        "エラー",
+        "OK",
+        "Error"
     )
     exit
 }
 
-# --- 2. 設定ファイルの読み込み ---
-$ipList = if (Test-Path "$confPath\IpList.csv") {
-    Get-Content "$confPath\IpList.csv"
-} else {
-    @()
+# ============================================================
+# 設定読込
+# ============================================================
+$basePath = Split-Path $PSScriptRoot -Parent
+$confPath = Join-Path $basePath "conf"
+$logPath  = Join-Path $basePath "log"
+
+$ipList = @()
+$ipFile = "$confPath\IpList.csv"
+if (Test-Path $ipFile) {
+    $ipList = Get-Content $ipFile | Where-Object { $_ -and $_.Trim() -ne "" }
 }
 
-$default = if (Test-Path "$confPath\DefaultAccount.csv") {
-    (Get-Content "$confPath\DefaultAccount.csv").Split(',')
-} else {
-    "", ""
-}
+# ============================================================
+# フォーム
+# ============================================================
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "SSH Auto Login"
+$form.StartPosition = "CenterScreen"
+$form.AutoSize = $true
+$form.AutoSizeMode = "GrowAndShrink"
 
-# --- 3. GUI（フォーム）の定義 ---
 $font = New-Object System.Drawing.Font("メイリオ", 10)
 
-$form = New-Object System.Windows.Forms.Form -Property @{
-    Text = "SSH Auto Login"
-    Size = "300,280"
-    StartPosition = "CenterScreen"
-    FormBorderStyle = "FixedDialog"
-    MaximizeBox = $false
-    MinimizeBox = $false
+# ============================================================
+# ToolTip
+# ============================================================
+$tooltip = New-Object System.Windows.Forms.ToolTip
+$tooltip.InitialDelay = 200
+
+# ============================================================
+# メインレイアウト
+# ============================================================
+$mainPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+$mainPanel.FlowDirection = "TopDown"
+$mainPanel.WrapContents = $false
+$mainPanel.AutoSize = $true
+$mainPanel.Padding = [System.Windows.Forms.Padding]::new(10)
+
+$form.Controls.Add($mainPanel)
+
+# ============================================================
+# 接続情報
+# ============================================================
+$table = New-Object System.Windows.Forms.TableLayoutPanel
+$table.RowCount = 3
+$table.ColumnCount = 2
+$table.AutoSize = $true
+
+$lblIp = New-Object System.Windows.Forms.Label
+$lblIp.Text = "IP:"
+$lblIp.Font = $font
+
+$cmbIp = New-Object System.Windows.Forms.ComboBox
+$cmbIp.Font = $font
+$cmbIp.Width = 180
+if ($ipList.Count -gt 0) { $cmbIp.Items.AddRange($ipList) }
+
+$lblUser = New-Object System.Windows.Forms.Label
+$lblUser.Text = "User:"
+$lblUser.Font = $font
+
+$txtUser = New-Object System.Windows.Forms.TextBox
+$txtUser.Font = $font
+
+$lblPass = New-Object System.Windows.Forms.Label
+$lblPass.Text = "Pass:"
+$lblPass.Font = $font
+
+$txtPass = New-Object System.Windows.Forms.TextBox
+$txtPass.Font = $font
+$txtPass.PasswordChar = '*'
+
+$table.Controls.Add($lblIp, 0, 0)
+$table.Controls.Add($cmbIp, 1, 0)
+$table.Controls.Add($lblUser, 0, 1)
+$table.Controls.Add($txtUser, 1, 1)
+$table.Controls.Add($lblPass, 0, 2)
+$table.Controls.Add($txtPass, 1, 2)
+
+# --- Panelでラップ（重なり防止）
+$innerInput = New-Object System.Windows.Forms.Panel
+$innerInput.AutoSize = $true
+$innerInput.Location = New-Object System.Drawing.Point(10,20)
+$innerInput.Controls.Add($table)
+
+$grpInput = New-Object System.Windows.Forms.GroupBox
+$grpInput.Text = "接続情報"
+$grpInput.AutoSize = $true
+$grpInput.Controls.Add($innerInput)
+
+$mainPanel.Controls.Add($grpInput)
+
+# ============================================================
+# 操作
+# ============================================================
+$panel = New-Object System.Windows.Forms.FlowLayoutPanel
+$panel.AutoSize = $true
+
+function Is-ValidIP($ip) {
+    return [System.Net.IPAddress]::TryParse($ip, [ref]$null)
 }
 
-# ラベルと入力欄の配置
-$controls = @(
-    @{ Type="Label"; Text="IPアドレス:"; Y=25 },
-    @{ Type="Combo"; Name="cmbIp"; Y=22; Items=$ipList },
-    @{ Type="Label"; Text="ユーザー:"; Y=75 },
-    @{ Type="Text"; Name="txtUser"; Y=72; Text=$default[0] },
-    @{ Type="Label"; Text="パスワード:"; Y=125 },
-    @{ Type="Text"; Name="txtPass"; Y=122; Text=$default[1]; Password=$true }
-)
+function Start-Login {
 
-# コントロールの一括生成
-$fields = @{}
+    $server = $cmbIp.Text.Trim()
+    $user   = $txtUser.Text.Trim()
+    $pass   = $txtPass.Text
 
-foreach ($c in $controls) {
-
-    if ($c.Type -eq "Label") {
-
-        $obj = New-Object System.Windows.Forms.Label -Property @{
-            Text = $c.Text
-            Location = "20,$($c.Y)"
-            AutoSize = $true
-        }
-
-    }
-    elseif ($c.Type -eq "Combo") {
-
-        $obj = New-Object System.Windows.Forms.ComboBox -Property @{
-            Location = "110,$($c.Y)"
-            Size = "140,25"
-            Font = $font
-        }
-
-        $c.Items | ForEach-Object { [void]$obj.Items.Add($_) }
-        $fields[$c.Name] = $obj
-    }
-    else {
-
-        $obj = New-Object System.Windows.Forms.TextBox -Property @{
-            Location = "110,$($c.Y)"
-            Size = "140,25"
-            Font = $font
-            Text = $c.Text
-        }
-
-        if ($c.Password) {
-            $obj.PasswordChar = '*'
-        }
-
-        $fields[$c.Name] = $obj
-    }
-
-    $form.Controls.Add($obj)
-}
-
-# --- 4. 実行アクション ---
-$btnOk = New-Object System.Windows.Forms.Button -Property @{
-    Text = "ログイン"
-    Location = "40,185"
-    Size = "100,35"
-}
-
-$btnOk.Add_Click({
-
-    if ([string]::IsNullOrWhiteSpace($fields["cmbIp"].Text)) {
-        [System.Windows.Forms.MessageBox]::Show("IPアドレスを選択してください。")
+    # --- バリデーション ---
+    if (-not (Is-ValidIP $server)) {
+        [System.Windows.Forms.MessageBox]::Show("IP形式が不正です")
         return
     }
 
-    # Tera Term本体 (ttermpro) を起動
-    # /Mオプションでマクロを指定し、マクロ側へ引数として接続情報を渡す
-    $server = $fields["cmbIp"].Text
-    $user   = $fields["txtUser"].Text
-    $pass   = $fields["txtPass"].Text
+    if ([string]::IsNullOrWhiteSpace($user)) {
+        [System.Windows.Forms.MessageBox]::Show("ユーザー名を入力してください")
+        return
+    }
 
-    $ttermArgs = "`"$server`" /ssh /2 /auth=password /user=`"$user`" /passwd=`"$pass`" /M=`"$ttlPath`""
+    # --- TTLパス ---
+    $ttlPath = Join-Path $PSScriptRoot "Main.ttl"
 
+    if (-not (Test-Path $ttlPath)) {
+        [System.Windows.Forms.MessageBox]::Show("Main.ttl が見つかりません")
+        return
+    }
+
+    # --- 引数生成 ---
+    $ttermArgs = @(
+        "`"$server`"",
+        "/ssh",
+        "/2",
+        "/auth=password",
+        "/user=`"$user`"",
+        "/passwd=`"$pass`"",
+        "/M=`"$ttlPath`""
+    ) -join " "
+
+    # --- 起動 ---
     Start-Process -FilePath $ttermpro -ArgumentList $ttermArgs
 
-    $form.Close()
-})
+}
 
-$form.Controls.Add($btnOk)
-$form.AcceptButton = $btnOk
+function NewBtn($text, $action, $tip) {
+    $btn = New-Object System.Windows.Forms.Button
+    $btn.Text = $text
+    $btn.Width = 90
+    $btn.Margin = [System.Windows.Forms.Padding]::new(3)
+    $btn.Add_Click($action)
+    $tooltip.SetToolTip($btn, $tip)
+    return $btn
+}
 
+$panel.Controls.AddRange(@(
+    (NewBtn "ログイン" { Start-Login } "サーバへ接続"),
+    (NewBtn "ログ確認" { Start-Process explorer.exe $logPath } "ログを開く"),
+    (NewBtn "終了" { $form.Close() } "ツールを終了")
+))
+
+# --- Panelでラップ（重なり防止）
+$innerAction = New-Object System.Windows.Forms.Panel
+$innerAction.AutoSize = $true
+$innerAction.Location = New-Object System.Drawing.Point(10,20)
+$innerAction.Controls.Add($panel)
+
+$grpAction = New-Object System.Windows.Forms.GroupBox
+$grpAction.Text = "操作"
+$grpAction.AutoSize = $true
+$grpAction.Controls.Add($innerAction)
+
+$mainPanel.Controls.Add($grpAction)
+
+# ============================================================
+# ToolTip
+# ============================================================
+$tooltip.SetToolTip($cmbIp, "IPアドレスを入力または選択")
+$tooltip.SetToolTip($txtUser, "ログインユーザー名")
+$tooltip.SetToolTip($txtPass, "ログインパスワード")
+
+# ============================================================
+# 初期フォーカス
+# ============================================================
+$form.Add_Shown({ $cmbIp.Focus() })
+
+# ============================================================
+# 表示
+# ============================================================
 [void]$form.ShowDialog()
