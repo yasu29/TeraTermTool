@@ -8,17 +8,17 @@ pause 1
 ; --- 1. ログ出力設定 ---
 getdir current_dir
 log_dir = current_dir
-strconcat log_dir '\log'
+strconcat log_dir '\..\log'
 
 ; フォルダ存在確認
-folderexist log_dir result
-if result = 0 then
-    mkdir log_dir
+filesearch log_dir
+if result == 0 then
+    foldercreate log_dir
 endif
 
-strtime timestr "%Y%m%d-%H%M%S"
+gettime timestr "%Y%m%d-%H%M%S"
 ; ファイル名に日時を付与（※本体起動のためparam1等の引数は不要になりました）
-sprintf2 log_file "%s%s_%s.log" log_dir host timestr
+sprintf2 log_file "%s\console_%s.log" log_dir timestr
 
 ; ログ取得開始（0:標準, 1:追記）
 logopen log_file 0 1
@@ -28,7 +28,7 @@ logopen log_file 0 1
 wait '$' '#' '%'
 
 ; プロンプトの装飾設定（色付けなど）
-sendln 'export PS1="[\t][\[\e[1;32m\]\u\[\e[0;39m\]@\[\e[1;36m\]\h\[\e[0;39m\]]% "'
+sendln 'export PS1="[\t][\u@\h]% "'
 
 ; 以降、装飾後のプロンプト終了文字「]」を待機してコマンドを送出
 wait ']'

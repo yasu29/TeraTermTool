@@ -53,6 +53,15 @@ if (Test-Path $ipFile) {
     $ipList = Get-Content $ipFile | Where-Object { $_ -and $_.Trim() -ne "" }
 }
 
+$accFile = "$confPath\DefaultAccount.csv"
+if (Test-Path $accFile) {
+    $accData = Import-Csv $accFile -Header "user", "pass" | Select-Object -First 1
+    if ($accData) {
+        $defaultUser = $accData.user
+        $defaultPass = $accData.pass
+    }
+}
+
 # ============================================================
 # フォーム
 # ============================================================
@@ -104,6 +113,7 @@ $lblUser.Font = $font
 
 $txtUser = New-Object System.Windows.Forms.TextBox
 $txtUser.Font = $font
+$txtUser.Text = $defaultUser
 
 $lblPass = New-Object System.Windows.Forms.Label
 $lblPass.Text = "Pass:"
@@ -112,6 +122,7 @@ $lblPass.Font = $font
 $txtPass = New-Object System.Windows.Forms.TextBox
 $txtPass.Font = $font
 $txtPass.PasswordChar = '*'
+$txtPass.Text = $defaultPass
 
 $table.Controls.Add($lblIp, 0, 0)
 $table.Controls.Add($cmbIp, 1, 0)
