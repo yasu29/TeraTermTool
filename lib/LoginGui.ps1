@@ -188,7 +188,7 @@ function Start-Login {
     ) -join " "
 
     # --- 起動 ---
-    Start-Process -FilePath $ttermpro -ArgumentList $macroArgs
+    Start-Process -FilePath $ttmacro -ArgumentList $macroArgs
 
 }
 

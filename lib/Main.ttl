@@ -2,6 +2,11 @@
 ; Main.ttl - ログイン後処理マクロ
 ; ==========================================================
 
+; --- プロンプト定義 ---
+prompt_user = '$'
+prompt_root = '#'
+prompt_other = '%'
+
 ; --- 0. 引数の受け取り ---
 hostname = param2
 username = param3
@@ -45,22 +50,39 @@ logopen log_file 0 1
 timeout = 10
 
 ; 一般的なプロンプト記号のいずれかが出るまで待つ
-wait '$' '#' '%'
+wait prompt_user prompt_root prompt_other
 
 if result == 0 then
     messagebox "プロンプトの待機中にタイムアウトしました。" "Error"
     end
 endif
 
-; プロンプトの装飾設定（色付けなど）
+; プロンプトの装飾設定
+break_count = 3
+call s_break_line_flex
 sendln 'export PS1="[\t][\u@\h]% "'
 
-; 以降、装飾後のプロンプト終了文字「]」を待機してコマンドを送出
-wait ']'
+wait prompt_user prompt_root prompt_other
+call s_break_line_flex
 sendln 'id; uname -n'
 
-wait ']'
+wait prompt_user prompt_root prompt_other
+call s_break_line_flex
 sendln 'date'
+
+wait prompt_user prompt_root prompt_other
+call s_break_line_flex
 
 ; マクロのみ終了（Tera Termのウィンドウはそのまま残ります）
 end
+
+; ============================================================
+; サブルーチン: 改行挿入
+; ============================================================
+
+:s_break_line_flex
+    for i 1 break_count
+        sendln
+    next
+
+return
