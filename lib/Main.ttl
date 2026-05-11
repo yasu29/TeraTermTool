@@ -2,10 +2,27 @@
 ; Main.ttl - ログイン後処理マクロ
 ; ==========================================================
 
-; 接続が完了して安定するまでわずかに待機
-pause 1
+; --- 0. 引数の受け取り ---
+hostname = param2
+username = param3
+password = param4
 
-; --- 1. ログ出力設定 ---
+
+; --- 1. 接続処理 ---
+; connectコマンド用の文字列を組み立て
+; 例: 192.168.1.1:22 /ssh /2 /auth=password /user=root /passwd=pw
+sprintf2 conn_cmd '%s:22 /ssh /2 /auth=password /user=%s /passwd=%s' hostname username password
+
+connect conn_cmd
+
+
+; 接続に失敗した（またはキャンセルした）場合の処理
+if result != 2 then
+    ; 接続が「通信中(2)」でない場合は終了
+    end
+endif
+
+; --- 2. ログ出力設定 ---
 getdir current_dir
 log_dir = current_dir
 strconcat log_dir '\..\log'
@@ -17,15 +34,23 @@ if result == 0 then
 endif
 
 gettime timestr "%Y%m%d-%H%M%S"
-; ファイル名に日時を付与（※本体起動のためparam1等の引数は不要になりました）
-sprintf2 log_file "%s\console_%s.log" log_dir timestr
+; ファイル名にIPアドレスと日時を付与
+sprintf2 log_file "%s\%s_%s.log" log_dir hostname timestr
 
 ; ログ取得開始（0:標準, 1:追記）
 logopen log_file 0 1
 
-; --- 2. プロンプトの待機とコマンド実行 ---
+; --- 3. プロンプトの待機とコマンド実行 ---
+; タイムアウトを設定
+timeout = 10
+
 ; 一般的なプロンプト記号のいずれかが出るまで待つ
 wait '$' '#' '%'
+
+if result == 0 then
+    messagebox "プロンプトの待機中にタイムアウトしました。" "Error"
+    end
+endif
 
 ; プロンプトの装飾設定（色付けなど）
 sendln 'export PS1="[\t][\u@\h]% "'

@@ -180,18 +180,15 @@ function Start-Login {
     }
 
     # --- 引数生成 ---
-    $ttermArgs = @(
+    $macroArgs = @(
+        "`"$ttlPath`"",
         "`"$server`"",
-        "/ssh",
-        "/2",
-        "/auth=password",
-        "/user=`"$user`"",
-        "/passwd=`"$pass`"",
-        "/M=`"$ttlPath`""
+        "`"$user`"",
+        "`"$pass`""
     ) -join " "
 
     # --- 起動 ---
-    Start-Process -FilePath $ttermpro -ArgumentList $ttermArgs
+    Start-Process -FilePath $ttermpro -ArgumentList $macroArgs
 
 }
 
