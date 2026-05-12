@@ -156,6 +156,9 @@ function Is-ValidIP($ip) {
 
 function Start-Login {
 
+    # 引数でマクロ名を指定可能にする
+    param([string]$ttlName = "Main.ttl")
+
     $server = $cmbIp.Text.Trim()
     $user   = $txtUser.Text.Trim()
     $pass   = $txtPass.Text
@@ -172,10 +175,10 @@ function Start-Login {
     }
 
     # --- TTLパス ---
-    $ttlPath = Join-Path $PSScriptRoot "Main.ttl"
+    $ttlPath = Join-Path $PSScriptRoot $ttlName
 
     if (-not (Test-Path $ttlPath)) {
-        [System.Windows.Forms.MessageBox]::Show("Main.ttl が見つかりません")
+        [System.Windows.Forms.MessageBox]::Show("$ttlName が見つかりません")
         return
     }
 
@@ -195,7 +198,7 @@ function Start-Login {
 function NewBtn($text, $action, $tip) {
     $btn = New-Object System.Windows.Forms.Button
     $btn.Text = $text
-    $btn.Width = 90
+    $btn.Width = 120
     $btn.Margin = [System.Windows.Forms.Padding]::new(3)
     $btn.Add_Click($action)
     $tooltip.SetToolTip($btn, $tip)
@@ -204,6 +207,7 @@ function NewBtn($text, $action, $tip) {
 
 $panel.Controls.AddRange(@(
     (NewBtn "ログイン" { Start-Login } "サーバへ接続"),
+    (NewBtn "サンプル実行" {Start-Login "SampleCommand.ttl"} "サンプルコマンドを実行"),
     (NewBtn "ログ確認" { Start-Process explorer.exe $logPath } "ログを開く"),
     (NewBtn "終了" { $form.Close() } "ツールを終了")
 ))

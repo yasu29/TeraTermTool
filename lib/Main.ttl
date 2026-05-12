@@ -73,8 +73,9 @@ sendln 'date'
 wait prompt_user prompt_root prompt_other
 call s_break_line_flex
 
-; マクロのみ終了（Tera Termのウィンドウはそのまま残ります）
-end
+; Main.ttl の処理終了
+; （Tera Termセッションは維持し、後続TTLへ制御を戻す）
+exit
 
 ; ============================================================
 ; サブルーチン: 改行挿入
