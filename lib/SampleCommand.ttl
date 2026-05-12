@@ -1,13 +1,24 @@
 include 'Main.ttl'
 
-call s_break_line_flex
+wait prompt_user prompt_root prompt_other
 sendln 'df -h'
 
 wait prompt_user prompt_root prompt_other
-
-call s_break_line_flex
+call s_break_line_sample
 sendln 'uptime'
 
 wait prompt_user prompt_root prompt_other
+call s_break_line_sample
 
 end
+
+; ============================================================
+; サブルーチン: 改行挿入
+; ============================================================
+
+:s_break_line_sample
+    for i 1 break_count
+        sendln
+    next
+
+return

@@ -58,20 +58,19 @@ if result == 0 then
 endif
 
 ; プロンプトの装飾設定
-break_count = 3
-call s_break_line_flex
 sendln 'export PS1="[\t][\u@\h]% "'
 
 wait prompt_user prompt_root prompt_other
-call s_break_line_flex
+break_count = 3
+call s_break_line_main
 sendln 'id; uname -n'
 
 wait prompt_user prompt_root prompt_other
-call s_break_line_flex
+call s_break_line_main
 sendln 'date'
 
 wait prompt_user prompt_root prompt_other
-call s_break_line_flex
+call s_break_line_main
 
 ; Main.ttl の処理終了
 ; （Tera Termセッションは維持し、後続TTLへ制御を戻す）
@@ -81,7 +80,7 @@ exit
 ; サブルーチン: 改行挿入
 ; ============================================================
 
-:s_break_line_flex
+:s_break_line_main
     for i 1 break_count
         sendln
     next
